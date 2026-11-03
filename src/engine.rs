@@ -19,7 +19,7 @@ pub fn clean(id: &str) -> CleanResult {
 pub fn confirm_text(rows: &[CacheRow]) -> String {
     let picked: Vec<_> = rows.iter().filter(|row| row.selected && row.cleanable).collect();
     let mut lines = vec![
-        "다음 항목을 정리합니다.".to_string(),
+        "다음 항목을 Lethe합니다.".to_string(),
         picked.iter().map(|row| row.title.as_str()).collect::<Vec<_>>().join(", "),
     ];
     if picked.iter().any(|row| row.id == "pnpm") {

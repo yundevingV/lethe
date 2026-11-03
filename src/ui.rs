@@ -75,7 +75,7 @@ impl LetheApp {
             for id in targets {
                 let _ = tx.send(Msg::CleanStatus {
                     id: id.clone(),
-                    message: "정리 중…".into(),
+                    message: "Lethe 중…".into(),
                     error: false,
                     clear_selection: false,
                 });
@@ -105,9 +105,9 @@ impl LetheApp {
                 Msg::CleanFinished { failures } => {
                     self.cleaning = false;
                     self.banner = Some(if failures == 0 {
-                        ("선택한 캐시를 정리했습니다.".into(), false)
+                        ("Lethe했습니다.".into(), false)
                     } else {
-                        ("일부 항목을 정리하지 못했습니다.".into(), true)
+                        ("Lethe하지 못했습니다.".into(), true)
                     });
                     self.start_scan();
                 }
@@ -197,7 +197,7 @@ fn header(app: &mut LetheApp, ui: &mut egui::Ui) {
         ui.horizontal(|ui| {
             ui.vertical(|ui| {
                 ui.spacing_mut().item_spacing.y = 1.0;
-                ui.label(semibold("Lethe", 22.0));
+                ui.label(semibold("Lethe — 망각의 강", 22.0));
                 ui.label(summary(app));
             });
             let label = if app.scanning { "측정 중…" } else { "다시 측정" };
@@ -422,7 +422,7 @@ fn footer(app: &mut LetheApp, ui: &mut egui::Ui) {
         ui.spacing_mut().item_spacing.y = 4.0;
         ui.add_space(8.0);
         if app.rows.iter().any(|row| row.id == "pnpm" && row.selected) {
-            ui.label(egui::RichText::new("pnpm 용량은 스토어 전체라, 정리해도 표시된 만큼 줄지 않을 수 있습니다.").small().weak());
+            ui.label(egui::RichText::new("pnpm 용량은 스토어 전체라, Lethe해도 표시된 만큼 줄지 않을 수 있습니다.").small().weak());
         }
         ui.horizontal(|ui| {
             let count = app.rows.iter().filter(|row| row.selected && row.can_select(false)).count();
@@ -430,19 +430,19 @@ fn footer(app: &mut LetheApp, ui: &mut egui::Ui) {
             let label = if app.scanning {
                 "크기를 측정하는 중입니다.".into()
             } else if count == 0 {
-                "정리할 항목을 선택하세요.".into()
+                "Lethe할 항목을 선택하세요.".into()
             } else {
-                format!("선택 {}", format_bytes(total))
+                format!("Lethe {}", format_bytes(total))
             };
             ui.label(label);
             ui.with_layout(egui::Layout::right_to_left(egui::Align::Min), |ui| {
-                let text = if app.cleaning { "정리 중…" } else { "선택 항목 정리" };
+                let text = if app.cleaning { "Lethe 중…" } else { "Lethe" };
                 if ui.add_enabled(count > 0 && !app.busy() && !app.confirm, egui::Button::new(text)).clicked() {
                     app.confirm = true;
                 }
             });
         });
-        ui.label(egui::RichText::new("nvm, Docker 설정, 프로젝트 node_modules는 건드리지 않습니다. 확인 후에만 지웁니다.").small().weak());
+        ui.label(egui::RichText::new("nvm, Docker 설정, 프로젝트 node_modules는 건드리지 않습니다. 확인 후에만 Lethe합니다.").small().weak());
         ui.add_space(6.0);
     });
 }
@@ -454,7 +454,7 @@ fn confirm(app: &mut LetheApp, ctx: &egui::Context) {
     let mut open = true;
     let mut accepted = false;
     let mut cancelled = false;
-    egui::Window::new("선택한 캐시를 정리할까요?")
+    egui::Window::new("Lethe할까요?")
         .collapsible(false)
         .resizable(false)
         .anchor(egui::Align2::CENTER_CENTER, [0.0, 0.0])
@@ -462,12 +462,12 @@ fn confirm(app: &mut LetheApp, ctx: &egui::Context) {
         .show(ctx, |ui| {
             ui.label(confirm_text(&app.rows));
             ui.add_space(8.0);
-            ui.horizontal(|ui| {
+            ui.with_layout(egui::Layout::right_to_left(egui::Align::Center), |ui| {
+                if ui.button("Lethe").clicked() {
+                    accepted = true;
+                }
                 if ui.button("취소").clicked() {
                     cancelled = true;
-                }
-                if ui.button("정리").clicked() {
-                    accepted = true;
                 }
             });
         });

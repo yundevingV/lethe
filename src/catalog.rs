@@ -23,7 +23,7 @@ pub const SPECS: &[Spec] = &[
     Spec { id: "npm", title: "npm", detail: "설치 캐시와 npx 캐시입니다. 다음 설치 때 다시 받습니다.", group: CacheGroup::Install, cleanable: true, default_on: true },
     Spec { id: "uv", title: "uv", detail: "uv 패키지 캐시입니다. 다음 설치 때 다시 받습니다.", group: CacheGroup::Install, cleanable: true, default_on: true },
     Spec { id: "yarn", title: "yarn", detail: "Yarn 패키지 캐시입니다. 다음 설치 때 다시 받습니다.", group: CacheGroup::Install, cleanable: true, default_on: true },
-    Spec { id: "pnpm", title: "pnpm 스토어", detail: "지금 쓰는 스토어 용량입니다. 정리는 프로젝트에서 안 쓰는 파일만 지웁니다.", group: CacheGroup::Install, cleanable: true, default_on: false },
+    Spec { id: "pnpm", title: "pnpm 스토어", detail: "지금 쓰는 스토어 용량입니다. Lethe는 프로젝트에서 안 쓰는 파일만 지웁니다.", group: CacheGroup::Install, cleanable: true, default_on: false },
     Spec { id: "pnpm-old", title: "pnpm 다른 버전", detail: "지금 PATH의 pnpm이 쓰지 않는 스토어입니다. 그 버전으로 다시 설치하면 받아집니다.", group: CacheGroup::Install, cleanable: true, default_on: false },
     Spec { id: "pip", title: "pip", detail: "pip 다운로드 캐시입니다. 다음 설치 때 다시 받습니다.", group: CacheGroup::Install, cleanable: true, default_on: true },
     Spec { id: "brew", title: "Homebrew", detail: "다운로드 캐시입니다. 설치된 프로그램은 그대로입니다.", group: CacheGroup::Install, cleanable: true, default_on: true },
@@ -69,8 +69,8 @@ pub fn clean(id: &str) -> CleanResult {
         "corepack" => prefer_tool("corepack", &["cache", "clean"], caches::paths(os(), "corepack")),
         "pnpm" => clean_pnpm(),
         "pnpm-old" => pnpm::empty_inactive(),
-        "docker-builder" => clean_docker(&["builder", "prune", "-af"], "빌드 캐시를 정리했습니다."),
-        "docker-images" => clean_docker(&["image", "prune", "-af"], "사용 중이지 않은 이미지를 정리했습니다."),
+        "docker-builder" => clean_docker(&["builder", "prune", "-af"], "빌드 캐시를 Lethe했습니다."),
+        "docker-images" => clean_docker(&["image", "prune", "-af"], "미사용 이미지를 Lethe했습니다."),
         _ => CleanResult::fail("이 항목은 여기서 지우지 않습니다."),
     }
 }
@@ -102,7 +102,7 @@ fn clean_npm() -> CleanResult {
 fn clean_pip() -> CleanResult {
     if let Some(pip) = find_tool("pip3").or_else(|| find_tool("pip")) {
         if runner::run(&pip, &["cache", "purge"]).code == 0 {
-            return CleanResult::ok("정리했습니다.");
+            return CleanResult::ok("Lethe했습니다.");
         }
     }
     folders(caches::paths(os(), "pip"), "pip 캐시를 지우지 못했습니다.")
@@ -111,7 +111,7 @@ fn clean_pip() -> CleanResult {
 fn clean_go_mod() -> CleanResult {
     if let Some(go) = find_tool("go") {
         if runner::run(&go, &["clean", "-modcache"]).code == 0 {
-            return CleanResult::ok("정리했습니다.");
+            return CleanResult::ok("Lethe했습니다.");
         }
     }
     wipe("go")
@@ -120,7 +120,7 @@ fn clean_go_mod() -> CleanResult {
 fn clean_go_build() -> CleanResult {
     if let Some(go) = find_tool("go") {
         if runner::run(&go, &["clean", "-cache"]).code == 0 {
-            return CleanResult::ok("정리했습니다.");
+            return CleanResult::ok("Lethe했습니다.");
         }
     }
     wipe("go-build")
@@ -129,7 +129,7 @@ fn clean_go_build() -> CleanResult {
 fn clean_nuget() -> CleanResult {
     if let Some(dotnet) = find_tool("dotnet") {
         if runner::run(&dotnet, &["nuget", "locals", "all", "--clear"]).code == 0 {
-            return CleanResult::ok("정리했습니다.");
+            return CleanResult::ok("Lethe했습니다.");
         }
     }
     wipe("nuget")
@@ -147,7 +147,7 @@ fn clean_pnpm() -> CleanResult {
     if result.code != 0 {
         return CleanResult::fail(runner::explain(&result.output, "pnpm"));
     }
-    CleanResult::ok("안 쓰는 패키지를 정리했습니다. 스토어 전체는 남아 있습니다.")
+    CleanResult::ok("안 쓰는 패키지를 Lethe했습니다. 스토어 전체는 남아 있습니다.")
 }
 
 fn clean_docker(args: &[&str], success: &str) -> CleanResult {
@@ -167,7 +167,7 @@ fn clean_docker(args: &[&str], success: &str) -> CleanResult {
 fn prefer_tool(name: &str, args: &[&str], fallback: &[&str]) -> CleanResult {
     if let Some(tool) = find_tool(name) {
         if runner::run(&tool, args).code == 0 {
-            return CleanResult::ok("정리했습니다.");
+            return CleanResult::ok("Lethe했습니다.");
         }
     }
     folders(fallback, &format!("{name} 캐시를 지우지 못했습니다."))
@@ -175,7 +175,7 @@ fn prefer_tool(name: &str, args: &[&str], fallback: &[&str]) -> CleanResult {
 
 fn folders(relatives: &[&str], fail: &str) -> CleanResult {
     match runner::empty_dirs(relatives) {
-        Ok(()) => CleanResult::ok("정리했습니다."),
+        Ok(()) => CleanResult::ok("Lethe했습니다."),
         Err(()) => CleanResult::fail(fail),
     }
 }

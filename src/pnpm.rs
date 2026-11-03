@@ -37,7 +37,7 @@ pub fn empty_inactive() -> CleanResult {
             return CleanResult::fail("다른 버전 pnpm 스토어를 지우지 못했습니다.");
         }
     }
-    CleanResult::ok("다른 버전 pnpm 스토어를 정리했습니다.")
+    CleanResult::ok("다른 버전 pnpm 스토어를 Lethe했습니다.")
 }
 
 fn inactive_under(relative: &str, active: Option<&Path>) -> Vec<PathBuf> {

@@ -42,7 +42,7 @@ pub fn explain(output: &str, tool: &str) -> String {
     if lower.contains("permission denied") || lower.contains("eacces") {
         return "권한이 없어 지우지 못했습니다.".into();
     }
-    format!("{tool} 정리에 실패했습니다.")
+    format!("{tool} Lethe에 실패했습니다.")
 }
 
 pub fn disk_usage(relatives: &[&str]) -> u64 {
