@@ -13,7 +13,7 @@ enum Msg {
     CleanFinished { failures: usize },
 }
 
-pub struct DevCacheApp {
+pub struct LetheApp {
     rows: Vec<CacheRow>,
     scanning: bool,
     cleaning: bool,
@@ -23,7 +23,7 @@ pub struct DevCacheApp {
     rx: Receiver<Msg>,
 }
 
-impl DevCacheApp {
+impl LetheApp {
     fn new(cc: &eframe::CreationContext<'_>) -> Self {
         install_font(&cc.egui_ctx);
         let (tx, rx) = mpsc::channel();
@@ -128,7 +128,7 @@ impl DevCacheApp {
     }
 }
 
-impl eframe::App for DevCacheApp {
+impl eframe::App for LetheApp {
     fn ui(&mut self, ui: &mut egui::Ui, _frame: &mut eframe::Frame) {
         let ctx = ui.ctx().clone();
         self.poll(&ctx);
@@ -144,10 +144,10 @@ pub fn run() -> eframe::Result<()> {
         viewport: egui::ViewportBuilder::default()
             .with_inner_size([640.0, 880.0])
             .with_min_inner_size([520.0, 560.0])
-            .with_title("개발 캐시"),
+            .with_title("Lethe"),
         ..Default::default()
     };
-    eframe::run_native("개발 캐시", options, Box::new(|cc| Ok(Box::new(DevCacheApp::new(cc)))))
+    eframe::run_native("Lethe", options, Box::new(|cc| Ok(Box::new(LetheApp::new(cc)))))
 }
 
 fn install_font(ctx: &egui::Context) {
@@ -190,14 +190,14 @@ fn semibold(text: &str, size: f32) -> egui::RichText {
     egui::RichText::new(text).size(size).family(semibold_family())
 }
 
-fn header(app: &mut DevCacheApp, ui: &mut egui::Ui) {
+fn header(app: &mut LetheApp, ui: &mut egui::Ui) {
     egui::Panel::top("header").show(ui, |ui| {
         ui.spacing_mut().item_spacing.y = 2.0;
         ui.add_space(4.0);
         ui.horizontal(|ui| {
             ui.vertical(|ui| {
                 ui.spacing_mut().item_spacing.y = 1.0;
-                ui.label(semibold("개발 캐시", 22.0));
+                ui.label(semibold("Lethe", 22.0));
                 ui.label(summary(app));
             });
             let label = if app.scanning { "측정 중…" } else { "다시 측정" };
@@ -216,7 +216,7 @@ fn header(app: &mut DevCacheApp, ui: &mut egui::Ui) {
     });
 }
 
-fn summary(app: &DevCacheApp) -> String {
+fn summary(app: &LetheApp) -> String {
     let total: u64 = app.rows.iter().filter(|row| row.group == CacheGroup::Packages).map(|row| row.bytes.unwrap_or(0)).sum();
     if app.scanning && total == 0 {
         "캐시 크기를 측정하는 중입니다.".into()
@@ -225,7 +225,7 @@ fn summary(app: &DevCacheApp) -> String {
     }
 }
 
-fn body(app: &mut DevCacheApp, ui: &mut egui::Ui) {
+fn body(app: &mut LetheApp, ui: &mut egui::Ui) {
     egui::CentralPanel::default().show(ui, |ui| {
         egui::ScrollArea::vertical().auto_shrink([false, false]).show(ui, |ui| {
             ui.spacing_mut().item_spacing.y = 0.0;
@@ -237,7 +237,7 @@ fn body(app: &mut DevCacheApp, ui: &mut egui::Ui) {
     });
 }
 
-fn section(app: &mut DevCacheApp, ui: &mut egui::Ui, group: CacheGroup, title: &str, first: bool) {
+fn section(app: &mut LetheApp, ui: &mut egui::Ui, group: CacheGroup, title: &str, first: bool) {
     let mut rows: Vec<_> = app.rows.iter().filter(|row| row.group == group).cloned().collect();
     rows.retain(|row| match row.bytes {
         Some(0) => false,
@@ -275,7 +275,7 @@ fn section(app: &mut DevCacheApp, ui: &mut egui::Ui, group: CacheGroup, title: &
     }
 }
 
-fn render_row(app: &DevCacheApp, ui: &mut egui::Ui, row: &CacheRow) -> Option<(String, bool)> {
+fn render_row(app: &LetheApp, ui: &mut egui::Ui, row: &CacheRow) -> Option<(String, bool)> {
     let mut selected = row.selected;
     let enabled = !app.busy() && (row.can_select(false) || row.selected);
     let mut toggle = None;
@@ -350,7 +350,7 @@ fn colored_checkbox(ui: &mut egui::Ui, checked: &mut bool, enabled: bool) -> egu
     response
 }
 
-fn size_text(app: &DevCacheApp, row: &CacheRow) -> String {
+fn size_text(app: &LetheApp, row: &CacheRow) -> String {
     match row.bytes {
         Some(0) => "없음".into(),
         Some(bytes) => format_bytes(bytes),
@@ -359,7 +359,7 @@ fn size_text(app: &DevCacheApp, row: &CacheRow) -> String {
     }
 }
 
-fn footer(app: &mut DevCacheApp, ui: &mut egui::Ui) {
+fn footer(app: &mut LetheApp, ui: &mut egui::Ui) {
     egui::Panel::bottom("footer").show(ui, |ui| {
         ui.spacing_mut().item_spacing.y = 4.0;
         ui.add_space(8.0);
@@ -389,7 +389,7 @@ fn footer(app: &mut DevCacheApp, ui: &mut egui::Ui) {
     });
 }
 
-fn confirm(app: &mut DevCacheApp, ctx: &egui::Context) {
+fn confirm(app: &mut LetheApp, ctx: &egui::Context) {
     if !app.confirm {
         return;
     }

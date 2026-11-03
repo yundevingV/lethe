@@ -1,4 +1,4 @@
-# 개발 캐시
+# Lethe
 
 macOS와 Windows용 Rust 앱이다. npm, Go, Cargo, NuGet, Maven, Gradle처럼 개발 캐시 크기를 보여주고, 고른 항목만 지운다. 경로는 실행하는 사람의 홈 기준이고, 없는 캐시는 목록에 나오지 않는다.
 
@@ -16,7 +16,7 @@ Windows에서는 Rust가 설치된 뒤 프로젝트 폴더에서:
 
 ```bash
 cargo build --release
-.\target\release\DevCache.exe
+.\target\release\Lethe.exe
 ```
 
 Windows 캐시는 그 계정의 `%USERPROFILE%` 아래다. npm은 `%LOCALAPPDATA%\npm-cache`, Go 빌드 캐시는 `%LOCALAPPDATA%\go-build`, NuGet은 `%USERPROFILE%\.nuget\packages`, Docker 디스크는 `%LOCALAPPDATA%\Docker\wsl\disk\docker_data.vhdx`를 본다. macOS `.app`은 Windows에서 실행되지 않는다.

@@ -1,16 +1,16 @@
 [package]
-name = "devcache"
+name = "lethe"
 version = "0.1.0"
 edition = "2021"
 publish = false
-description = "개발 도구 캐시 정리"
+description = "Lethe. 개발 캐시를 비운다."
 
 [lib]
-name = "devcache"
+name = "lethe"
 path = "src/lib.rs"
 
 [[bin]]
-name = "DevCache"
+name = "Lethe"
 path = "src/main.rs"
 
 [dependencies]

@@ -7,23 +7,23 @@ source "$HOME/.cargo/env"
 cargo test
 cargo build --release
 
-APP="DevCache.app"
+APP="Lethe.app"
 rm -rf "$APP"
 mkdir -p "$APP/Contents/MacOS"
-cp target/release/DevCache "$APP/Contents/MacOS/DevCache"
+cp target/release/Lethe "$APP/Contents/MacOS/Lethe"
 cat > "$APP/Contents/Info.plist" <<'EOF'
 <?xml version="1.0" encoding="UTF-8"?>
 <!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
 <plist version="1.0">
 <dict>
   <key>CFBundleExecutable</key>
-  <string>DevCache</string>
+  <string>Lethe</string>
   <key>CFBundleIdentifier</key>
-  <string>app.devcache.mac</string>
+  <string>app.lethe.mac</string>
   <key>CFBundleName</key>
-  <string>DevCache</string>
+  <string>Lethe</string>
   <key>CFBundleDisplayName</key>
-  <string>개발 캐시</string>
+  <string>Lethe</string>
   <key>CFBundlePackageType</key>
   <string>APPL</string>
   <key>CFBundleShortVersionString</key>

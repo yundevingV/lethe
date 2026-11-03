@@ -95,7 +95,7 @@ pub fn parse_du(text: &str) -> u64 {
 
 pub fn run(exe: &Path, args: &[&str]) -> CommandOutput {
     let log = std::env::temp_dir().join(format!(
-        "devcache-{}-{}.log",
+        "lethe-{}-{}.log",
         std::process::id(),
         LOG_SEQ.fetch_add(1, Ordering::Relaxed)
     ));
