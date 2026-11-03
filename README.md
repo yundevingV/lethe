@@ -2,7 +2,7 @@
 
 개발 도구 **캐시만** 골라 지우는 macOS / Windows 앱. npm, Go, Cargo, NuGet, Maven, Gradle 등. 경로는 각 사용자 홈(`~` / `%USERPROFILE%`) 기준이고, 없는 캐시는 목록에 나오지 않는다.
 
-UI: [egui](https://github.com/emilk/egui) / eframe
+UI: [egui](https://github.com/emilk/egui) / eframe — 레이아웃·색 방향은 [design.md](design.md)
 
 ## 설치 (다운로드)
 
@@ -12,11 +12,28 @@ UI: [egui](https://github.com/emilk/egui) / eframe
 
 | 파일 | 플랫폼 | 설치 |
 |------|--------|------|
-| `Lethe-0.1.0.pkg` | macOS (Apple Silicon) | 더블클릭 → 응용 프로그램에 설치 |
-| `Lethe-macOS-arm64.zip` | macOS (Apple Silicon) | zip 풀고 `Lethe.app` 실행 |
-| `Lethe-Windows-x64.zip` | Windows 64-bit | zip 풀고 `Lethe.exe` 실행 |
+| `Lethe-0.1.0.pkg` | macOS (Apple Silicon) | 더블클릭 → 응용 프로그램에 설치 (막히면 아래 **macOS 보안**) |
+| `Lethe-macOS-arm64.zip` | macOS (Apple Silicon) | zip 풀고 `Lethe.app` 실행 (막히면 아래 **macOS 보안**) |
+| `Lethe-Windows-x64.zip` | Windows 64-bit | zip 풀고 `Lethe.exe` 실행 (막히면 아래 **Windows 보안**) |
 
-Gatekeeper / SmartScreen 경고가 나올 수 있다. Mac은 **우클릭 → 열기**, Windows는 **추가 정보 → 실행**. 서명은 개발용 수준이며, App Store 배포용 notarization 은 포함되지 않는다.
+Apple / Microsoft **공식 서명(notarization)은 없다.** 개발용 ad-hoc 서명이라 처음 설치·실행 때 경고가 날 수 있다.
+
+### macOS 보안 (Gatekeeper)
+
+**`.pkg` (`Lethe-0.1.0.pkg`)** — Sequoia 등 최근 macOS에서는 **우클릭 → 열기만으로 pkg가 안 열리는 경우가 많다.**
+
+1. pkg **더블클릭** → 차단되면 **시스템 설정** → **개인정보 보호 및 보안** → **보안** 섹션 **맨 아래**로 내린다.
+2. **「Mac을 보호하기 위해 'Lethe-0.1.0.pkg'을(를) 차단했습니다」** 옆 **「그래도 열기」** 를 누른다.
+3. pkg 설치를 **다시** 실행한다.
+
+**`Lethe.app` (zip)** — 첫 실행:
+
+- Finder에서 **Control+클릭(우클릭) → 열기 → 열기** 로 한 번 허용하거나,
+- 실행 시도 후 위와 같이 **개인정보 보호 및 보안 → 보안 → 「그래도 열기」** 가 보이면 그걸 사용한다.
+
+### Windows 보안 (SmartScreen)
+
+`Lethe.exe` 실행 시 경고가 뜨면 **추가 정보** → **실행**.
 
 ## 사용
 
