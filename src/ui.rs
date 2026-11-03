@@ -6,11 +6,13 @@ use eframe::egui;
 use crate::bytes::format_bytes;
 use crate::engine::{self, confirm_text};
 use crate::model::{CacheGroup, CacheRow};
+use crate::update::{self, UpdateOffer};
 
 enum Msg {
     Scanned(Vec<CacheRow>),
     CleanStatus { id: String, message: String, error: bool, clear_selection: bool },
     CleanFinished { failures: usize },
+    UpdateReady(Option<UpdateOffer>),
 }
 
 pub struct LetheApp {
@@ -19,6 +21,8 @@ pub struct LetheApp {
     cleaning: bool,
     banner: Option<(String, bool)>,
     confirm: bool,
+    update: Option<UpdateOffer>,
+    update_open: bool,
     tx: Sender<Msg>,
     rx: Receiver<Msg>,
 }
@@ -33,11 +37,22 @@ impl LetheApp {
             cleaning: false,
             banner: None,
             confirm: false,
+            update: None,
+            update_open: false,
             tx,
             rx,
         };
         app.start_scan();
+        app.start_update_check();
         app
+    }
+
+    fn start_update_check(&mut self) {
+        let tx = self.tx.clone();
+        std::thread::spawn(move || {
+            let offer = update::check_for_update();
+            let _ = tx.send(Msg::UpdateReady(offer));
+        });
     }
 
     fn busy(&self) -> bool {
@@ -111,6 +126,12 @@ impl LetheApp {
                     });
                     self.start_scan();
                 }
+                Msg::UpdateReady(offer) => {
+                    if let Some(info) = offer {
+                        self.update = Some(info);
+                        self.update_open = true;
+                    }
+                }
             }
         }
         if self.busy() {
@@ -136,6 +157,7 @@ impl eframe::App for LetheApp {
         footer(self, ui);
         body(self, ui);
         confirm(self, &ctx);
+        update_modal(self, &ctx);
     }
 }
 
@@ -475,5 +497,58 @@ fn confirm(app: &mut LetheApp, ctx: &egui::Context) {
         app.start_clean();
     } else if cancelled || !open {
         app.confirm = false;
+    }
+}
+
+fn update_modal(app: &mut LetheApp, ctx: &egui::Context) {
+    let Some(offer) = app.update.as_ref() else { return };
+    if !app.update_open {
+        return;
+    }
+    let mut open = true;
+    let mut skip = false;
+    let mut download = false;
+    let mut close = false;
+    let current = update::app_version().to_string();
+    let title = format!("새 버전 {} (지금 {})", offer.tag, current);
+    egui::Window::new(title)
+        .collapsible(false)
+        .resizable(true)
+        .default_width(440.0)
+        .anchor(egui::Align2::CENTER_CENTER, [0.0, 0.0])
+        .open(&mut open)
+        .show(ctx, |ui| {
+            ui.label(
+                egui::RichText::new("GitHub Releases에 새 Lethe가 있습니다. 자동 설치는 없고, 받아서 교체해야 합니다.")
+                    .small()
+                    .weak(),
+            );
+            ui.add_space(6.0);
+            egui::ScrollArea::vertical()
+                .max_height(260.0)
+                .show(ui, |ui| {
+                    ui.add(egui::Label::new(&offer.notes).wrap());
+                });
+            ui.add_space(8.0);
+            ui.with_layout(egui::Layout::right_to_left(egui::Align::Center), |ui| {
+                if ui.button("Releases에서 받기").clicked() {
+                    download = true;
+                }
+                if ui.button("이 버전 넘기기").clicked() {
+                    skip = true;
+                }
+                if ui.button("닫기").clicked() {
+                    close = true;
+                }
+            });
+        });
+    if download {
+        update::open_release_page(&offer.page_url);
+        app.update_open = false;
+    } else if skip {
+        let _ = update::skip_version(&offer.tag);
+        app.update_open = false;
+    } else if close || !open {
+        app.update_open = false;
     }
 }
