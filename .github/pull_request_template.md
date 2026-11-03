@@ -8,4 +8,4 @@
 
 ## 테스트
 
-- [ ] `cargo test`
+- [ ] `cargo test` (PR 올리면 GitHub Actions **CI**가 자동 실행)
