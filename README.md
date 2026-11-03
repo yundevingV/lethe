@@ -1,66 +1,82 @@
 # Lethe
 
-macOS와 Windows용 Rust 앱이다. npm, Go, Cargo, NuGet, Maven, Gradle처럼 개발 캐시 크기를 보여주고, 고른 항목만 지운다. 경로는 실행하는 사람의 홈 기준이고, 없는 캐시는 목록에 나오지 않는다.
+개발 도구 **캐시만** 골라 지우는 macOS / Windows 앱. npm, Go, Cargo, NuGet, Maven, Gradle 등. 경로는 각 사용자 홈(`~` / `%USERPROFILE%`) 기준이고, 없는 캐시는 목록에 나오지 않는다.
 
-화면은 [egui](https://github.com/emilk/egui) / eframe 이다.
+UI: [egui](https://github.com/emilk/egui) / eframe
 
-## 실행
+## 설치 (다운로드)
+
+**Rust 없이** 쓰려면 GitHub Releases에서 받는다.
+
+**[Releases → 최신 버전](https://github.com/yundevingV/lethe/releases/latest)**
+
+| 파일 | 플랫폼 | 설치 |
+|------|--------|------|
+| `Lethe-0.1.0.pkg` | macOS (Apple Silicon) | 더블클릭 → 응용 프로그램에 설치 |
+| `Lethe-macOS-arm64.zip` | macOS (Apple Silicon) | zip 풀고 `Lethe.app` 실행 |
+| `Lethe-Windows-x64.zip` | Windows 64-bit | zip 풀고 `Lethe.exe` 실행 |
+
+Gatekeeper / SmartScreen 경고가 나올 수 있다. Mac은 **우클릭 → 열기**, Windows는 **추가 정보 → 실행**. 서명은 개발용 수준이며, App Store 배포용 notarization 은 포함되지 않는다.
+
+## 사용
+
+1. 앱 실행 → **다시 측정**으로 용량 확인  
+2. **전체 선택** 또는 구역별·항목별 체크  
+3. **선택 항목 정리** → 확인 후 실행  
+
+설치 캐시(패키지 다운로드)와 실행 캐시(빌드·런타임)는 화면에서 구분된다.
+
+## 소스에서 빌드 (개발자)
+
+```bash
+git clone https://github.com/yundevingV/lethe.git
+cd lethe
+```
 
 macOS:
 
 ```bash
-./scripts/run.sh
+chmod +x scripts/*.sh
+./scripts/run.sh          # 빌드 + Lethe.app 실행
+./scripts/build-app.sh    # Lethe.app 만
+./scripts/pkg.sh          # Lethe-0.1.0.pkg
 ```
 
-Windows에서는 Rust가 설치된 뒤 프로젝트 폴더에서:
+Windows (PowerShell):
 
-```bash
+```powershell
 cargo build --release
 .\target\release\Lethe.exe
 ```
 
-Windows 캐시는 그 계정의 `%USERPROFILE%` 아래다. npm은 `%LOCALAPPDATA%\npm-cache`, Go 빌드 캐시는 `%LOCALAPPDATA%\go-build`, NuGet은 `%USERPROFILE%\.nuget\packages`, Docker 디스크는 `%LOCALAPPDATA%\Docker\wsl\disk\docker_data.vhdx`를 본다. macOS `.app`은 Windows에서 실행되지 않는다.
-
-처음 실행은 의존성을 받고 릴리스 빌드를 하므로 몇 분 걸린다. 끝나면 창이 열린다.
-
-검사만 돌리려면:
+테스트:
 
 ```bash
-source "$HOME/.cargo/env"
 cargo test
 ```
 
-## 지우는 것
+## 지우는 것 / 안 지우는 것
 
-| 항목 | 동작 |
-|---|---|
-| npm | `npm cache clean --force`, npx 캐시 폴더 |
-| yarn | `yarn cache clean`. 실패하면 Yarn 캐시 폴더만 |
-| uv / pip | 각 캐시 삭제 명령. 실패하면 기본 캐시 폴더 |
-| Homebrew | `~/Library/Caches/Homebrew` 내용. 설치된 프로그램은 유지 |
-| Maven | `~/.m2/repository`와 래퍼. `settings.xml`은 유지 |
-| Gradle | `~/.gradle/caches`와 받아 둔 Gradle 배포판 |
-| Go | `go clean -modcache`, `go clean -cache`. 설치된 Go는 유지 |
-| Cargo | `~/.cargo/registry`, `~/.cargo/git`. rustup과 `~/.cargo/bin`은 유지 |
-| NuGet | `dotnet nuget locals all --clear`. 실패하면 패키지 캐시 폴더 |
-| Composer / Bundler / Poetry / Coursier / Hex / ccache | 각 캐시 폴더 내용만 |
-| Playwright | `~/Library/Caches/ms-playwright` 브라우저. 다음 테스트 때 다시 받음 |
-| TypeScript / Corepack / Electron / pnpm 실행 캐시 | 해당 캐시 폴더 내용만. pnpm 스토어는 별도 |
-| pnpm | `pnpm store prune`. 지금 쓰는 스토어 폴더는 지우지 않음 |
-| pnpm 다른 버전 | 현재 pnpm이 가리키지 않는 스토어 폴더만 삭제 |
-| Docker 빌드 캐시 | `docker builder prune -af` |
-| Docker 미사용 이미지 | `docker image prune -af` |
+| 지우는 것 | 안 지우는 것 |
+|-----------|--------------|
+| npm, yarn, pnpm, uv, pip, Homebrew 등 **캐시** | nvm, rustup, `~/.cargo/bin`, `~/go/bin` (설치본) |
+| Maven/Gradle/Cargo/NuGet 등 **받아 둔 아티팩트** | Docker 가상 디스크, pnpm 스토어 **전체** |
+| Docker **빌드 캐시 / 미사용 이미지** (CLI) | `~/.docker` 설정, 프로젝트 `node_modules` |
+| Playwright 브라우저, TypeScript 에디터 캐시 등 | 브라우저 캐시 |
 
-정리 버튼은 확인 창 다음에만 동작한다.
+정리 전 확인 창이 뜬다. 지운 파일은 다음 설치·빌드 때 다시 받아진다.
 
-## 건드리지 않는 것
+## 릴리스 (maintainer)
 
-- `~/.nvm`, `%APPDATA%\nvm` (설치한 Node)
-- `~/.rustup`, `~/.cargo/bin` (Rust 툴체인과 설치한 실행 파일)
-- `~/go/bin` (설치된 Go 프로그램)
-- SDKMAN, pyenv처럼 언어 버전 설치 폴더
-- `~/.docker` 설정
-- Docker 가상 디스크 파일 (`Docker.raw`)
-- pnpm 스토어 전체
-- 프로젝트 안 `node_modules`
-- 브라우저 캐시
+`v*` 태그를 push하면 GitHub Actions가 Mac pkg·zip, Windows zip을 빌드해 Release에 올린다.
+
+```bash
+git tag v0.1.0
+git push origin v0.1.0
+```
+
+자세한 절차는 [CONTRIBUTING.md](CONTRIBUTING.md) 참고.
+
+## 기여
+
+버그·기능 제안·PR은 [CONTRIBUTING.md](CONTRIBUTING.md) 를 본다.

@@ -1,4 +1,5 @@
 /target
 /DevCache.app
 /Lethe.app
+/Lethe-*.pkg
 .DS_Store

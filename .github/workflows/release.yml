@@ -1,0 +1,59 @@
+name: Release
+
+on:
+  push:
+    tags:
+      - "v*"
+
+permissions:
+  contents: write
+
+jobs:
+  build-macos:
+    runs-on: macos-14
+    steps:
+      - uses: actions/checkout@v4
+      - uses: dtolnay/rust-toolchain@stable
+      - name: Build app and pkg
+        run: |
+          chmod +x scripts/*.sh
+          ./scripts/pkg.sh
+      - name: Zip app bundle
+        run: ditto -c -k --sequesterResource --keepParent Lethe.app Lethe-macOS-arm64.zip
+      - uses: actions/upload-artifact@v4
+        with:
+          name: macos
+          path: |
+            Lethe-0.1.0.pkg
+            Lethe-macOS-arm64.zip
+
+  build-windows:
+    runs-on: windows-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: dtolnay/rust-toolchain@stable
+      - name: Build
+        run: cargo build --release
+      - name: Zip exe
+        shell: pwsh
+        run: Compress-Archive -Path target/release/Lethe.exe -DestinationPath Lethe-Windows-x64.zip
+      - uses: actions/upload-artifact@v4
+        with:
+          name: windows
+          path: Lethe-Windows-x64.zip
+
+  release:
+    needs: [build-macos, build-windows]
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/download-artifact@v4
+        with:
+          path: dist
+          merge-multiple: true
+      - uses: softprops/action-gh-release@v2
+        with:
+          generate_release_notes: true
+          files: |
+            dist/Lethe-0.1.0.pkg
+            dist/Lethe-macOS-arm64.zip
+            dist/Lethe-Windows-x64.zip

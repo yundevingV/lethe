@@ -15,7 +15,8 @@ const ROWS: &[CachePaths] = &[
     CachePaths { id: "brew", macos: &["Library/Caches/Homebrew"], windows: &[], wipe: true },
     CachePaths { id: "maven", macos: &[".m2/repository", ".m2/wrapper"], windows: &[".m2/repository", ".m2/wrapper"], wipe: true },
     CachePaths { id: "gradle", macos: &[".gradle/caches", ".gradle/wrapper/dists"], windows: &[".gradle/caches", ".gradle/wrapper/dists"], wipe: true },
-    CachePaths { id: "go", macos: &["go/pkg/mod", "Library/Caches/go-build"], windows: &["go/pkg/mod", "AppData/Local/go-build"], wipe: true },
+    CachePaths { id: "go", macos: &["go/pkg/mod"], windows: &["go/pkg/mod"], wipe: true },
+    CachePaths { id: "go-build", macos: &["Library/Caches/go-build"], windows: &["AppData/Local/go-build"], wipe: true },
     CachePaths { id: "cargo", macos: &[".cargo/registry", ".cargo/git"], windows: &[".cargo/registry", ".cargo/git"], wipe: true },
     CachePaths { id: "nuget", macos: &[".nuget/packages"], windows: &[".nuget/packages", "AppData/Local/NuGet/v3-cache", "AppData/Local/NuGet/Cache"], wipe: true },
     CachePaths { id: "composer", macos: &[".composer/cache", ".cache/composer", "Library/Caches/composer"], windows: &["AppData/Local/Composer", "AppData/Roaming/Composer/cache", ".composer/cache"], wipe: true },
@@ -52,8 +53,9 @@ mod tests {
 
     #[test]
     fn windows_and_mac_use_different_cache_folders() {
-        assert!(paths("windows", "go").contains(&"AppData/Local/go-build"));
-        assert!(paths("macos", "go").contains(&"Library/Caches/go-build"));
+        assert!(paths("windows", "go-build").contains(&"AppData/Local/go-build"));
+        assert!(paths("macos", "go").contains(&"go/pkg/mod"));
+        assert!(paths("macos", "go-build").contains(&"Library/Caches/go-build"));
         assert!(paths("windows", "nuget").contains(&".nuget/packages"));
         assert!(paths("windows", "docker-disk").iter().any(|path| path.contains("docker_data.vhdx")));
     }

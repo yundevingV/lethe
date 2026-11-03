@@ -2,7 +2,8 @@
 pub enum CacheGroup {
     Disk,
     Docker,
-    Packages,
+    Install,
+    Run,
 }
 
 #[derive(Clone, Debug)]

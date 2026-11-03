@@ -207,6 +207,7 @@ fn header(app: &mut LetheApp, ui: &mut egui::Ui) {
                 }
             });
         });
+        select_all_bar(app, ui);
         if let Some((text, error)) = &app.banner {
             ui.add_space(6.0);
             let color = if *error { egui::Color32::from_rgb(180, 40, 40) } else { egui::Color32::from_rgb(30, 120, 60) };
@@ -217,12 +218,61 @@ fn header(app: &mut LetheApp, ui: &mut egui::Ui) {
 }
 
 fn summary(app: &LetheApp) -> String {
-    let total: u64 = app.rows.iter().filter(|row| row.group == CacheGroup::Packages).map(|row| row.bytes.unwrap_or(0)).sum();
+    let total: u64 = app.rows.iter().filter(|row| row.group == CacheGroup::Install || row.group == CacheGroup::Run).map(|row| row.bytes.unwrap_or(0)).sum();
     if app.scanning && total == 0 {
         "캐시 크기를 측정하는 중입니다.".into()
     } else {
-        format!("패키지 캐시 합계 {}", format_bytes(total))
+        format!("캐시 합계 {}", format_bytes(total))
     }
+}
+
+fn select_all_bar(app: &mut LetheApp, ui: &mut egui::Ui) {
+    let eligible = app.rows.iter().filter(|row| row.can_select(false)).count();
+    let all_on = eligible > 0 && app.rows.iter().filter(|row| row.can_select(false)).all(|row| row.selected);
+    let mut checked = all_on;
+    let enabled = !app.busy() && eligible > 0;
+    ui.add_space(4.0);
+    let changed = ui.horizontal(|ui| {
+        ui.spacing_mut().item_spacing.x = 8.0;
+        let response = colored_checkbox(ui, &mut checked, enabled);
+        ui.label("전체 선택");
+        response.changed()
+    }).inner;
+    if changed {
+        for row in &mut app.rows {
+            if row.can_select(false) {
+                row.selected = checked;
+            }
+        }
+    }
+}
+
+fn section_heading(app: &LetheApp, ui: &mut egui::Ui, title: &str, rows: &[CacheRow]) -> Option<bool> {
+    let selectable: Vec<_> = rows.iter().filter(|row| row.can_select(false)).collect();
+    let all_on = !selectable.is_empty() && selectable.iter().all(|row| row.selected);
+    let mut checked = all_on;
+    let enabled = !app.busy() && !selectable.is_empty();
+    let mut changed = None;
+    let width = ui.available_width();
+    ui.horizontal(|ui| {
+        ui.set_min_width(width);
+        ui.spacing_mut().item_spacing.x = 8.0;
+        if rows.iter().any(|row| row.cleanable) && colored_checkbox(ui, &mut checked, enabled).changed() {
+            changed = Some(checked);
+        }
+        ui.label(semibold(title, 13.0).color(ui.visuals().weak_text_color()));
+        let sum: u64 = rows.iter().map(|row| row.bytes.unwrap_or(0)).sum();
+        if sum > 0 {
+            ui.allocate_ui_with_layout(
+                egui::vec2(ui.available_width(), 16.0),
+                egui::Layout::right_to_left(egui::Align::Center),
+                |ui| {
+                    ui.label(egui::RichText::new(format_bytes(sum)).small().weak());
+                },
+            );
+        }
+    });
+    changed
 }
 
 fn body(app: &mut LetheApp, ui: &mut egui::Ui) {
@@ -231,7 +281,8 @@ fn body(app: &mut LetheApp, ui: &mut egui::Ui) {
             ui.spacing_mut().item_spacing.y = 0.0;
             section(app, ui, CacheGroup::Disk, "가상 디스크", true);
             section(app, ui, CacheGroup::Docker, "Docker", false);
-            section(app, ui, CacheGroup::Packages, "패키지 캐시", false);
+            section(app, ui, CacheGroup::Install, "설치 캐시", false);
+            section(app, ui, CacheGroup::Run, "실행 캐시", false);
             ui.add_space(20.0);
         });
     });
@@ -247,11 +298,11 @@ fn section(app: &mut LetheApp, ui: &mut egui::Ui, group: CacheGroup, title: &str
     if rows.is_empty() {
         return;
     }
-    if group == CacheGroup::Packages {
+    if group == CacheGroup::Install || group == CacheGroup::Run {
         rows.sort_by(|a, b| b.bytes.unwrap_or(0).cmp(&a.bytes.unwrap_or(0)));
     }
     ui.add_space(if first { 8.0 } else { 16.0 });
-    ui.label(semibold(title, 12.5).color(ui.visuals().weak_text_color()));
+    let section_toggle = section_heading(app, ui, title, &rows);
     ui.add_space(6.0);
     let mut toggles = Vec::new();
     for (index, row) in rows.iter().enumerate() {
@@ -265,6 +316,13 @@ fn section(app: &mut LetheApp, ui: &mut egui::Ui, group: CacheGroup, title: &str
         }
     }
     let busy = app.busy();
+    if let Some(on) = section_toggle {
+        for row in app.rows.iter_mut().filter(|row| row.group == group && row.can_select(false)) {
+            if !busy {
+                row.selected = on;
+            }
+        }
+    }
     for (id, selected) in toggles {
         if let Some(row) = app.rows.iter_mut().find(|row| row.id == id) {
             if selected && !row.can_select(busy) {
