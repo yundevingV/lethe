@@ -2,6 +2,7 @@ name: Changelog
 
 on:
   pull_request:
+    branches: [main]
     types: [closed]
 
 permissions:
@@ -25,14 +26,10 @@ jobs:
           PR_URL: ${{ github.event.pull_request.html_url }}
           PR_BODY: ${{ github.event.pull_request.body }}
         run: |
-          NOTE=$(printf '%s' "$PR_BODY" | sed -n '/^## Changelog/,/^## /p' | tail -n +2 | sed '/^## /d' | head -n 5 | sed '/^[[:space:]]*$/d' | head -n 1)
-          if [ -z "$NOTE" ]; then
-            NOTE="$PR_TITLE"
-          fi
-          NOTE="${NOTE//$'\r'/}"
-          LINE="- ${NOTE} ([#${PR_NUMBER}](${PR_URL}))"
+          chmod +x scripts/pr-changelog-line.sh
+          ENTRY=$(scripts/pr-changelog-line.sh)
           echo "entry<<EOF" >> "$GITHUB_OUTPUT"
-          echo "$LINE" >> "$GITHUB_OUTPUT"
+          echo "$ENTRY" >> "$GITHUB_OUTPUT"
           echo "EOF" >> "$GITHUB_OUTPUT"
 
       - name: Append to CHANGELOG.md

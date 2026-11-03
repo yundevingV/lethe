@@ -1,0 +1,27 @@
+name: PR template
+
+on:
+  pull_request:
+    branches: [main]
+    types: [opened, edited, synchronize, reopened]
+
+permissions:
+  contents: read
+
+jobs:
+  changelog-section:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Validate ## Changelog (pull_request_template.md)
+        env:
+          PR_TITLE: ${{ github.event.pull_request.title }}
+          PR_NUMBER: ${{ github.event.pull_request.number }}
+          PR_URL: ${{ github.event.pull_request.html_url }}
+          PR_BODY: ${{ github.event.pull_request.body }}
+        run: |
+          chmod +x scripts/pr-changelog-line.sh
+          ENTRY=$(scripts/pr-changelog-line.sh)
+          echo "CHANGELOG entry preview:"
+          echo "$ENTRY"
