@@ -2,7 +2,7 @@
 
 개발 도구 **캐시만** 골라 지우는 macOS / Windows 앱. npm, Go, Cargo, NuGet, Maven, Gradle 등. 경로는 각 사용자 홈(`~` / `%USERPROFILE%`) 기준이고, 없는 캐시는 목록에 나오지 않는다.
 
-UI: [egui](https://github.com/emilk/egui) / eframe — 레이아웃·색 방향은 [design.md](design.md)
+UI: [egui](https://github.com/emilk/egui) / eframe — 디자인 메모: [design.md](design.md) (자유롭게 수정)
 
 ## 설치 (다운로드)
 
