@@ -44,6 +44,20 @@ Apple / Microsoft **공식 서명(notarization)은 없다.** 개발용 ad-hoc �
 
 설치 캐시(패키지 다운로드)와 실행 캐시(빌드·런타임)는 화면에서 구분된다.
 
+## 업데이트
+
+Lethe는 **실행할 때** GitHub Releases와 버전을 비교한다. 더 새 버전이 있으면 **모달**로 릴리스 노트(또는 `CHANGELOG.md` 해당 버전)를 보여 준다.
+
+| 버튼 | 동작 |
+|------|------|
+| **닫기** | 이번 실행만 모달 닫기 (다음 실행 때 다시 알림) |
+| **이 버전 넘기기** | 해당 버전은 다시 알리지 않음 (`~/.lethe/skipped_version`) |
+| **Releases에서 받기** | 브라우저로 [Releases](https://github.com/yundevingV/lethe/releases/latest) 열기 |
+
+**자동 설치(백그라운드 다운로드·교체)는 없다.** pkg/dmg/zip을 받아서 기존 앱을 교체해야 한다. (나중에 Sparkle 등 notarization과 함께 넣을 수 있음.)
+
+로컬에서 `./scripts/run.sh`로 쓰는 `Lethe.app`도 Releases보다 낮은 버전이면 같은 모달이 뜬다.
+
 ## 소스에서 빌드 (개발자)
 
 ```bash
