@@ -1,0 +1,421 @@
+use std::sync::mpsc::{self, Receiver, Sender};
+use std::time::Duration;
+
+use eframe::egui;
+
+use crate::bytes::format_bytes;
+use crate::engine::{self, confirm_text};
+use crate::model::{CacheGroup, CacheRow};
+
+enum Msg {
+    Scanned(Vec<CacheRow>),
+    CleanStatus { id: String, message: String, error: bool, clear_selection: bool },
+    CleanFinished { failures: usize },
+}
+
+pub struct DevCacheApp {
+    rows: Vec<CacheRow>,
+    scanning: bool,
+    cleaning: bool,
+    banner: Option<(String, bool)>,
+    confirm: bool,
+    tx: Sender<Msg>,
+    rx: Receiver<Msg>,
+}
+
+impl DevCacheApp {
+    fn new(cc: &eframe::CreationContext<'_>) -> Self {
+        install_font(&cc.egui_ctx);
+        let (tx, rx) = mpsc::channel();
+        let mut app = Self {
+            rows: engine::default_rows(),
+            scanning: false,
+            cleaning: false,
+            banner: None,
+            confirm: false,
+            tx,
+            rx,
+        };
+        app.start_scan();
+        app
+    }
+
+    fn busy(&self) -> bool {
+        self.scanning || self.cleaning
+    }
+
+    fn start_scan(&mut self) {
+        if self.busy() {
+            return;
+        }
+        self.scanning = true;
+        let existing = self.rows.clone();
+        let tx = self.tx.clone();
+        std::thread::spawn(move || {
+            let _ = tx.send(Msg::Scanned(engine::scan(&existing)));
+        });
+    }
+
+    fn start_clean(&mut self) {
+        let targets: Vec<String> = self
+            .rows
+            .iter()
+            .filter(|row| row.selected && row.can_select(false))
+            .map(|row| row.id.clone())
+            .collect();
+        if targets.is_empty() || self.busy() {
+            return;
+        }
+        self.cleaning = true;
+        self.banner = None;
+        self.confirm = false;
+        let tx = self.tx.clone();
+        std::thread::spawn(move || {
+            let mut failures = 0;
+            for id in targets {
+                let _ = tx.send(Msg::CleanStatus {
+                    id: id.clone(),
+                    message: "정리 중…".into(),
+                    error: false,
+                    clear_selection: false,
+                });
+                let result = engine::clean(&id);
+                if !result.ok {
+                    failures += 1;
+                }
+                let _ = tx.send(Msg::CleanStatus {
+                    id,
+                    message: result.message,
+                    error: !result.ok,
+                    clear_selection: result.ok,
+                });
+            }
+            let _ = tx.send(Msg::CleanFinished { failures });
+        });
+    }
+
+    fn poll(&mut self, ctx: &egui::Context) {
+        while let Ok(msg) = self.rx.try_recv() {
+            match msg {
+                Msg::Scanned(rows) => {
+                    self.rows = rows;
+                    self.scanning = false;
+                }
+                Msg::CleanStatus { id, message, error, clear_selection } => self.mark(&id, message, error, clear_selection),
+                Msg::CleanFinished { failures } => {
+                    self.cleaning = false;
+                    self.banner = Some(if failures == 0 {
+                        ("선택한 캐시를 정리했습니다.".into(), false)
+                    } else {
+                        ("일부 항목을 정리하지 못했습니다.".into(), true)
+                    });
+                    self.start_scan();
+                }
+            }
+        }
+        if self.busy() {
+            ctx.request_repaint_after(Duration::from_millis(100));
+        }
+    }
+
+    fn mark(&mut self, id: &str, message: String, error: bool, clear_selection: bool) {
+        let Some(row) = self.rows.iter_mut().find(|row| row.id == id) else { return };
+        row.status = Some(message);
+        row.status_is_error = error;
+        if clear_selection {
+            row.selected = false;
+        }
+    }
+}
+
+impl eframe::App for DevCacheApp {
+    fn ui(&mut self, ui: &mut egui::Ui, _frame: &mut eframe::Frame) {
+        let ctx = ui.ctx().clone();
+        self.poll(&ctx);
+        header(self, ui);
+        footer(self, ui);
+        body(self, ui);
+        confirm(self, &ctx);
+    }
+}
+
+pub fn run() -> eframe::Result<()> {
+    let options = eframe::NativeOptions {
+        viewport: egui::ViewportBuilder::default()
+            .with_inner_size([640.0, 880.0])
+            .with_min_inner_size([520.0, 560.0])
+            .with_title("개발 캐시"),
+        ..Default::default()
+    };
+    eframe::run_native("개발 캐시", options, Box::new(|cc| Ok(Box::new(DevCacheApp::new(cc)))))
+}
+
+fn install_font(ctx: &egui::Context) {
+    let path = "/System/Library/Fonts/AppleSDGothicNeo.ttc";
+    let Ok(bytes) = std::fs::read(path) else { return };
+    let mut fonts = egui::FontDefinitions::default();
+    fonts.font_data.insert("sd-medium".into(), std::sync::Arc::new(face(bytes.clone(), 2)));
+    fonts.font_data.insert("sd-semibold".into(), std::sync::Arc::new(face(bytes, 4)));
+    for family in [egui::FontFamily::Proportional, egui::FontFamily::Monospace] {
+        if let Some(list) = fonts.families.get_mut(&family) {
+            list.insert(0, "sd-medium".into());
+        }
+    }
+    fonts.families.insert(
+        egui::FontFamily::Name("semibold".into()),
+        vec!["sd-semibold".into(), "sd-medium".into()],
+    );
+    ctx.set_fonts(fonts);
+    ctx.all_styles_mut(|style| {
+        style.text_styles.insert(egui::TextStyle::Small, egui::FontId::new(12.5, egui::FontFamily::Proportional));
+        style.text_styles.insert(egui::TextStyle::Body, egui::FontId::new(15.0, egui::FontFamily::Proportional));
+        style.text_styles.insert(egui::TextStyle::Button, egui::FontId::new(14.5, egui::FontFamily::Proportional));
+        style.text_styles.insert(egui::TextStyle::Heading, egui::FontId::new(22.0, semibold_family()));
+        style.text_styles.insert(egui::TextStyle::Monospace, egui::FontId::new(15.0, egui::FontFamily::Proportional));
+    });
+}
+
+fn face(bytes: Vec<u8>, index: u32) -> egui::FontData {
+    let mut data = egui::FontData::from_owned(bytes);
+    data.index = index;
+    data.tweak.hinting = Some(true);
+    data
+}
+
+fn semibold_family() -> egui::FontFamily {
+    egui::FontFamily::Name("semibold".into())
+}
+
+fn semibold(text: &str, size: f32) -> egui::RichText {
+    egui::RichText::new(text).size(size).family(semibold_family())
+}
+
+fn header(app: &mut DevCacheApp, ui: &mut egui::Ui) {
+    egui::Panel::top("header").show(ui, |ui| {
+        ui.spacing_mut().item_spacing.y = 2.0;
+        ui.add_space(4.0);
+        ui.horizontal(|ui| {
+            ui.vertical(|ui| {
+                ui.spacing_mut().item_spacing.y = 1.0;
+                ui.label(semibold("개발 캐시", 22.0));
+                ui.label(summary(app));
+            });
+            let label = if app.scanning { "측정 중…" } else { "다시 측정" };
+            ui.with_layout(egui::Layout::right_to_left(egui::Align::Min), |ui| {
+                if ui.add_enabled(!app.busy(), egui::Button::new(label)).clicked() {
+                    app.start_scan();
+                }
+            });
+        });
+        if let Some((text, error)) = &app.banner {
+            ui.add_space(6.0);
+            let color = if *error { egui::Color32::from_rgb(180, 40, 40) } else { egui::Color32::from_rgb(30, 120, 60) };
+            ui.label(egui::RichText::new(text).color(egui::Color32::WHITE).background_color(color));
+        }
+        ui.add_space(6.0);
+    });
+}
+
+fn summary(app: &DevCacheApp) -> String {
+    let total: u64 = app.rows.iter().filter(|row| row.group == CacheGroup::Packages).map(|row| row.bytes.unwrap_or(0)).sum();
+    if app.scanning && total == 0 {
+        "캐시 크기를 측정하는 중입니다.".into()
+    } else {
+        format!("패키지 캐시 합계 {}", format_bytes(total))
+    }
+}
+
+fn body(app: &mut DevCacheApp, ui: &mut egui::Ui) {
+    egui::CentralPanel::default().show(ui, |ui| {
+        egui::ScrollArea::vertical().auto_shrink([false, false]).show(ui, |ui| {
+            ui.spacing_mut().item_spacing.y = 0.0;
+            section(app, ui, CacheGroup::Disk, "가상 디스크", true);
+            section(app, ui, CacheGroup::Docker, "Docker", false);
+            section(app, ui, CacheGroup::Packages, "패키지 캐시", false);
+            ui.add_space(20.0);
+        });
+    });
+}
+
+fn section(app: &mut DevCacheApp, ui: &mut egui::Ui, group: CacheGroup, title: &str, first: bool) {
+    let mut rows: Vec<_> = app.rows.iter().filter(|row| row.group == group).cloned().collect();
+    rows.retain(|row| match row.bytes {
+        Some(0) => false,
+        None => !app.scanning,
+        Some(_) => true,
+    });
+    if rows.is_empty() {
+        return;
+    }
+    if group == CacheGroup::Packages {
+        rows.sort_by(|a, b| b.bytes.unwrap_or(0).cmp(&a.bytes.unwrap_or(0)));
+    }
+    ui.add_space(if first { 8.0 } else { 16.0 });
+    ui.label(semibold(title, 12.5).color(ui.visuals().weak_text_color()));
+    ui.add_space(6.0);
+    let mut toggles = Vec::new();
+    for (index, row) in rows.iter().enumerate() {
+        if let Some(next) = render_row(app, ui, row) {
+            toggles.push(next);
+        }
+        if index + 1 != rows.len() {
+            ui.add_space(4.0);
+            ui.separator();
+            ui.add_space(4.0);
+        }
+    }
+    let busy = app.busy();
+    for (id, selected) in toggles {
+        if let Some(row) = app.rows.iter_mut().find(|row| row.id == id) {
+            if selected && !row.can_select(busy) {
+                continue;
+            }
+            row.selected = selected;
+        }
+    }
+}
+
+fn render_row(app: &DevCacheApp, ui: &mut egui::Ui, row: &CacheRow) -> Option<(String, bool)> {
+    let mut selected = row.selected;
+    let enabled = !app.busy() && (row.can_select(false) || row.selected);
+    let mut toggle = None;
+    let fill = if selected {
+        egui::Color32::from_rgba_unmultiplied(56, 132, 255, 42)
+    } else {
+        egui::Color32::TRANSPARENT
+    };
+    egui::Frame::new()
+        .fill(fill)
+        .corner_radius(8)
+        .inner_margin(egui::Margin::symmetric(6, 3))
+        .show(ui, |ui| {
+            let row_width = ui.available_width();
+            ui.horizontal(|ui| {
+                ui.set_min_width(row_width);
+                ui.spacing_mut().item_spacing.x = 8.0;
+                if colored_checkbox(ui, &mut selected, enabled).changed() {
+                    toggle = Some((row.id.clone(), selected));
+                }
+                let text = ui.vertical(|ui| {
+                    ui.spacing_mut().item_spacing.y = 0.0;
+                    ui.set_max_width((ui.available_width() - 116.0).max(160.0));
+                    ui.label(semibold(&row.title, 15.0));
+                    ui.add(egui::Label::new(egui::RichText::new(&row.detail).small().weak()).wrap());
+                    if let Some(reason) = &row.blocked_reason {
+                        ui.add(egui::Label::new(egui::RichText::new(reason).small().color(egui::Color32::from_rgb(220, 70, 70))).wrap());
+                    }
+                    if let Some(status) = &row.status {
+                        let color = if row.status_is_error {
+                            egui::Color32::from_rgb(220, 70, 70)
+                        } else {
+                            ui.visuals().weak_text_color()
+                        };
+                        ui.label(egui::RichText::new(status).small().color(color));
+                    }
+                });
+                let height = text.response.rect.height().max(18.0);
+                ui.allocate_ui_with_layout(
+                    egui::vec2(ui.available_width(), height),
+                    egui::Layout::right_to_left(egui::Align::Center),
+                    |ui| {
+                        ui.label(semibold(&size_text(app, row), 15.0));
+                    },
+                );
+            });
+        });
+    toggle
+}
+
+fn colored_checkbox(ui: &mut egui::Ui, checked: &mut bool, enabled: bool) -> egui::Response {
+    let (rect, mut response) = ui.allocate_exact_size(egui::vec2(18.0, 18.0), egui::Sense::click());
+    if response.clicked() && enabled {
+        *checked = !*checked;
+        response.mark_changed();
+    }
+    let accent = egui::Color32::from_rgb(56, 132, 255);
+    let (fill, stroke) = if *checked {
+        (accent, accent)
+    } else if enabled {
+        (egui::Color32::TRANSPARENT, egui::Color32::from_rgb(154, 162, 174))
+    } else {
+        (egui::Color32::TRANSPARENT, egui::Color32::from_rgb(92, 98, 108))
+    };
+    ui.painter().rect(rect, 4.0, fill, egui::Stroke::new(1.5, stroke), egui::StrokeKind::Inside);
+    if *checked {
+        let center = rect.center();
+        let mark = egui::Stroke::new(2.0, egui::Color32::WHITE);
+        ui.painter().line_segment([center + egui::vec2(-4.5, 0.4), center + egui::vec2(-1.2, 3.8)], mark);
+        ui.painter().line_segment([center + egui::vec2(-1.2, 3.8), center + egui::vec2(5.0, -3.6)], mark);
+    }
+    response
+}
+
+fn size_text(app: &DevCacheApp, row: &CacheRow) -> String {
+    match row.bytes {
+        Some(0) => "없음".into(),
+        Some(bytes) => format_bytes(bytes),
+        None if app.scanning => "측정 중".into(),
+        None => "확인 불가".into(),
+    }
+}
+
+fn footer(app: &mut DevCacheApp, ui: &mut egui::Ui) {
+    egui::Panel::bottom("footer").show(ui, |ui| {
+        ui.spacing_mut().item_spacing.y = 4.0;
+        ui.add_space(8.0);
+        if app.rows.iter().any(|row| row.id == "pnpm" && row.selected) {
+            ui.label(egui::RichText::new("pnpm 용량은 스토어 전체라, 정리해도 표시된 만큼 줄지 않을 수 있습니다.").small().weak());
+        }
+        ui.horizontal(|ui| {
+            let count = app.rows.iter().filter(|row| row.selected && row.can_select(false)).count();
+            let total: u64 = app.rows.iter().filter(|row| row.selected && row.cleanable && row.blocked_reason.is_none()).map(|row| row.bytes.unwrap_or(0)).sum();
+            let label = if app.scanning {
+                "크기를 측정하는 중입니다.".into()
+            } else if count == 0 {
+                "정리할 항목을 선택하세요.".into()
+            } else {
+                format!("선택 {}", format_bytes(total))
+            };
+            ui.label(label);
+            ui.with_layout(egui::Layout::right_to_left(egui::Align::Min), |ui| {
+                let text = if app.cleaning { "정리 중…" } else { "선택 항목 정리" };
+                if ui.add_enabled(count > 0 && !app.busy() && !app.confirm, egui::Button::new(text)).clicked() {
+                    app.confirm = true;
+                }
+            });
+        });
+        ui.label(egui::RichText::new("nvm, Docker 설정, 프로젝트 node_modules는 건드리지 않습니다. 확인 후에만 지웁니다.").small().weak());
+        ui.add_space(6.0);
+    });
+}
+
+fn confirm(app: &mut DevCacheApp, ctx: &egui::Context) {
+    if !app.confirm {
+        return;
+    }
+    let mut open = true;
+    let mut accepted = false;
+    let mut cancelled = false;
+    egui::Window::new("선택한 캐시를 정리할까요?")
+        .collapsible(false)
+        .resizable(false)
+        .anchor(egui::Align2::CENTER_CENTER, [0.0, 0.0])
+        .open(&mut open)
+        .show(ctx, |ui| {
+            ui.label(confirm_text(&app.rows));
+            ui.add_space(8.0);
+            ui.horizontal(|ui| {
+                if ui.button("취소").clicked() {
+                    cancelled = true;
+                }
+                if ui.button("정리").clicked() {
+                    accepted = true;
+                }
+            });
+        });
+    if accepted {
+        app.start_clean();
+    } else if cancelled || !open {
+        app.confirm = false;
+    }
+}
