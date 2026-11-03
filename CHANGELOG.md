@@ -5,6 +5,7 @@
 ## [Unreleased]
 
 - 실행 시 새 버전이 있으면 릴리스 노트 모달로 알리고 Releases에서 받을 수 있음 ([#1](https://github.com/yundevingV/lethe/pull/1))
+- PR마다 GitHub Actions에서 cargo test를 실행 ([#2](https://github.com/yundevingV/lethe/pull/2))
 
 ## [0.1.0] - 2026-11-03
 
