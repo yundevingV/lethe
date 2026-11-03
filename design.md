@@ -1,82 +1,120 @@
-# Lethe — design (내 메모)
+# Lethe (레테) — Design Specification
 
-여기만 고치면 됨. 코드 반영은 나중에 Agent에게 「design.md대로 UI」라고 하면 됨.
-
----
-
-## 느낌 / 키워드
-
-<!-- 예: 차분, 다크, 강(river), 미니멀 -->
-
-
+> **"Into the Aurora of Oblivion"**
+> system memory & cache cleanup software built with Rust
 
 ---
 
-## 색
+## 1. Executive Summary & Design Vision
 
-| 이름 | 용도 | hex / 메모 |
-|------|------|------------|
-| | 배경 | |
-| | 글자 | |
-| | 액센트 (선택·체크) | |
-| | 위험 / 에러 | |
+Lethe(레테)는 그리스 신화 속 '망각의 강'에서 유래한 시스템 캐시 및 임시 파일 정리 프로그램입니다.
 
-라이트 모드: ☐ 필요 ☐ 다크만
+단순한 파일 삭제 툴을 넘어, **시스템의 불필요한 데이터 찌꺼기를 우주 멀리 흩뿌리고 오로라 빛으로 정화하는 몽환적 경험**을 선사하는 것을 목표로 합니다.
 
----
-
-## 글자
-
-<!-- 예: 지금 SD Gothic Neo 유지 / Pretendard / 크기 -->
-
-
+* **Core Concept:** Deep Space Void & Glowing Aurora
+* **Mood & Atmosphere:** 몽환적인(Dreamy), 네온(Neon), 정숙함(Tranquil), 고성능(Rust-powered)
+* **Design Philosophy:**
+  * 시각적 지부하 감소 (Glassmorphism으로 투명감 강조)
+  * 삭제 인터랙션의 극대화 (별가루 소멸 모션)
+  * 직관적이고 미니멀한 UI 레이아웃
 
 ---
 
-## 화면 (와이어 / 설명)
+## 2. Color Palette & Typography
 
-<!-- 스케치, 링크, 말로만 써도 됨 -->
+### Color Palette
 
-### 헤더
+| Token Name | Color Code / Value | Usage |
+| --- | --- | --- |
+| `--bg-void` | `#090A0F` | 메인 앱 다크 베이스 배경 |
+| `--bg-glass` | `rgba(22, 27, 34, 0.55)` | 카드, 오버레이 패널 배경 (Glassmorphism) |
+| `--border-glass` | `rgba(255, 255, 255, 0.12)` | 패널 및 버튼 미세 하이라이트 테두리 |
+| `--aurora-cyan` | `#00F2FE` | 메인 오로라 링, 활성화 텍스트, Primary Accent |
+| `--aurora-purple` | `#9D50BB` | 성운 그라데이션, 보조 포인트, Hover Highlight |
+| `--aurora-pink` | `#FF77A9` | Purge 버튼 펄스, 파동 및 소멸 파티클 효과 |
+| `--text-primary` | `#F0F4F8` | 주요 타이틀, 대형 용량 수치 |
+| `--text-secondary` | `#8A99AD` | 마이크로 카피, 경로 텍스트, 비활성화 요소 |
+| `--dust-gray` | `rgba(160, 175, 200, 0.4)` | 캐시 찌꺼기 입자 (Dust Particles) |
 
+### Typography
 
+* **Headings & Numbers:** `Inter`, `Fira Code` (또는 `JetBrains Mono` — 용량 수치 표기 시)
+* **Body & UI Text:** `Pretendard`, `sans-serif`
+* **Text Styles:**
+  * **Hero Number (Cache Size):** 56px / Bold / Text Glow (`drop-shadow(0 0 12px rgba(0,242,254,0.4))`)
+  * **Section Title:** 18px / SemiBold / Inter-letter spacing 0.5px
+  * **Micro Copy:** 13px / Regular / Opacity 0.8
 
-### 목록 (설치 캐시 / 실행 캐시)
-
-
-
-### 푸터 (정리 버튼)
-
-
-
-### 확인 창
-
-
-
----
-
-## 꼭 넣고 싶은 것
-
-- [ ] 
-- [ ] 
-
-## 빼고 싶은 것
-
-- [ ] 
-- [ ] 
+이 머신에는 Pretendard / Inter / JetBrains Mono가 없다. 본문은 Apple SD Gothic Neo, 용량 숫자는 SF Mono.
 
 ---
 
-## 참고만 (코드 위치)
+## 3. UI/UX Layout Architecture
 
-- UI 구현: `src/ui.rs`
-- 창 크기·폰트: `ui.rs` → `run()`, `install_font()`
-- 지금 테마: egui 기본 다크 + 선택 파란색 (직접 바꿀 예정)
+```
++-------------------------------------------------------------+
+|  Lethe                              [ - ] [ ◽ ] [ X ]      |
++-------------------------------------------------------------+
+|                                                             |
+|                     [ Aurora Core Ring ]                    |
+|                        (Orb & Dust)                         |
+|                                                             |
+|                           1.42 GB                           |
+|            "1.42 GB의 성운 잔해(Cache)가 감지됨"             |
+|                                                             |
+|                 [ Release Into Oblivion ]                   |
+|                                                             |
++-------------------------------------------------------------+
+|  [ Glass Card ]             |  [ Glass Card ]               |
+|  설치 캐시                  |  실행 캐시                    |
+|  840 MB                     |  580 MB                       |
++-------------------------------------------------------------+
+|  Status                     |  다시 측정                    |
++-------------------------------------------------------------+
+```
+
+카테고리 이름은 실제 캐시 구분(설치 / 실행 / Docker / 가상 디스크)을 유지한다. 브라우저 캐시처럼 앱에 없는 분류는 만들지 않는다.
+
+### Layout Components
+
+1. **Header Zone:** 타이틀 `Lethe` (Cyan glow) + 최소화 / 최대화 / 닫기
+2. **Hero Visual Zone:** 오로라 링, 용량, 마이크로 카피, Purge 버튼
+3. **Category Breakdown:** 반투명 글래스 카드. 카드 안에서 항목 선택
+4. **Footer:** 상태 점 + 다시 측정. 설정/상세 탭은 동작이 없어 넣지 않음
 
 ---
 
-## 결정 로그
+## 4. Key Interactive Elements
 
-| 날짜 | 뭐로 했는지 |
-|------|-------------|
-| | |
+### The Lethe Core
+
+* **Idle:** 링이 천천히 회전. cyan + purple. 용량이 클수록 dust 입자가 늘어남
+* **Cleaning:** 회전 빨라짐. pink 펄스. dust가 바깥으로 퍼짐
+* **Purified:** cyan shockwave 1회. 수치 `0.00 MB`
+
+### Purge Button
+
+* 기본 문구 `Purge Memory`
+* Hover 문구 `Release Into Oblivion`
+* 채움 `rgba(0, 242, 254, 0.08)`, 테두리 `rgba(0, 242, 254, 0.3)`, hover glow
+
+egui에는 `backdrop-filter`와 GLSL이 없다. 링·입자·글로우는 Painter로 그린다.
+
+---
+
+## 5. Micro-copy
+
+| 상황 | Lethe 카피 |
+| --- | --- |
+| 스캔 완료 | `{size}의 성운 잔해(Cache)가 스토리지에 얽혀있습니다.` |
+| 청소 시작 | `Lethe의 물길에 시스템 기록을 수놓는 중...` |
+| 청소 완료 | `망각의 강으로 찌꺼기를 보냈습니다. {size} 정화 완료.` |
+| 오류 | `일부 기억 파편이 응결되어 정화되지 못했습니다.` |
+
+---
+
+## 6. 코드 위치
+
+* UI: `src/ui.rs`
+* 창 크기·폰트·테마: `ui.rs` → `run()`, `install_font()`, `apply_theme()`
+* 앱 번들: 저장소 루트 `Lethe.app`
