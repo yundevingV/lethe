@@ -12,6 +12,7 @@ UI: [egui](https://github.com/emilk/egui) / eframe — 레이아웃·색 방향�
 
 | 파일 | 플랫폼 | 설치 |
 |------|--------|------|
+| `Lethe-0.1.0.dmg` | macOS (Apple Silicon) | DMG 열기 → `Lethe.app`을 **Applications**로 드래그 (막히면 아래 **macOS 보안**) |
 | `Lethe-0.1.0.pkg` | macOS (Apple Silicon) | 더블클릭 → 응용 프로그램에 설치 (막히면 아래 **macOS 보안**) |
 | `Lethe-macOS-arm64.zip` | macOS (Apple Silicon) | zip 풀고 `Lethe.app` 실행 (막히면 아래 **macOS 보안**) |
 | `Lethe-Windows-x64.zip` | Windows 64-bit | zip 풀고 `Lethe.exe` 실행 (막히면 아래 **Windows 보안**) |
@@ -26,7 +27,7 @@ Apple / Microsoft **공식 서명(notarization)은 없다.** 개발용 ad-hoc �
 2. **「Mac을 보호하기 위해 'Lethe-0.1.0.pkg'을(를) 차단했습니다」** 옆 **「그래도 열기」** 를 누른다.
 3. pkg 설치를 **다시** 실행한다.
 
-**`Lethe.app` (zip)** — 첫 실행:
+**`Lethe.app` (dmg / zip)** — 첫 실행:
 
 - Finder에서 **Control+클릭(우클릭) → 열기 → 열기** 로 한 번 허용하거나,
 - 실행 시도 후 위와 같이 **개인정보 보호 및 보안 → 보안 → 「그래도 열기」** 가 보이면 그걸 사용한다.
@@ -57,6 +58,7 @@ chmod +x scripts/*.sh
 ./scripts/run.sh          # 빌드 + Lethe.app 실행
 ./scripts/build-app.sh    # Lethe.app 만
 ./scripts/pkg.sh          # Lethe-0.1.0.pkg
+./scripts/dmg.sh          # Lethe-0.1.0.dmg (Applications 드래그용)
 ```
 
 Windows (PowerShell):

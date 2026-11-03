@@ -4,7 +4,8 @@ cd "$(dirname "$0")/.."
 
 ./scripts/build-app.sh
 
-VERSION="0.1.0"
+# shellcheck source=version.sh
+source "$(dirname "$0")/version.sh"
 PKG="Lethe-${VERSION}.pkg"
 IDENT="app.lethe.mac"
 

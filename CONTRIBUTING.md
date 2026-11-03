@@ -49,23 +49,23 @@ macOS UI 확인:
 
 ## 릴리스 (maintainer)
 
-1. `Cargo.toml`의 `version`과 태그 `v0.1.0` 형식 맞추기  
-2. `scripts/pkg.sh`의 `VERSION`도 동일하게 (pkg 파일명)  
-3. 커밋 push 후:
+1. `Cargo.toml`의 `version`과 태그 `v0.1.0` 형식 맞추기 (pkg/dmg 파일명은 `scripts/version.sh`가 Cargo.toml에서 읽음)  
+2. 커밋 push 후:
 
 ```bash
 git tag v0.1.0
 git push origin v0.1.0
 ```
 
-4. [Actions](https://github.com/yundevingV/lethe/actions) 에서 **Release** 워크플로 확인  
-5. [Releases](https://github.com/yundevingV/lethe/releases) 에 `Lethe-0.1.0.pkg`, `Lethe-macOS-arm64.zip`, `Lethe-Windows-x64.zip` 첨부 확인
+3. [Actions](https://github.com/yundevingV/lethe/actions) 에서 **Release** 워크플로 확인  
+4. [Releases](https://github.com/yundevingV/lethe/releases) 에 pkg, **dmg**, Mac zip, Windows zip 첨부 확인
 
 수동 업로드 (CI 실패 시):
 
 ```bash
 ./scripts/pkg.sh
-gh release create v0.1.0 Lethe-0.1.0.pkg --generate-notes
+./scripts/dmg.sh
+gh release create v0.1.0 Lethe-0.1.0.pkg Lethe-0.1.0.dmg --generate-notes
 gh release upload v0.1.0 Lethe-Windows-x64.zip   # Windows PC에서 빌드한 zip
 ```
 
