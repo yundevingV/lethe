@@ -31,8 +31,9 @@ macOS UI 확인:
 1. `main`에서 브랜치 생성
 2. 변경 범위는 작게 (캐시 allowlist·UI·한 OS 경로 등)
 3. `cargo test` 통과
-4. 캐시 삭제 동작을 바꿀 때는 **안전 목록**(`src/caches.rs`, `runner`)과 테스트를 함께 수정
-5. PR 설명에 무엇을 지우고/안 지우는지 한글로 짧게
+4. PR 본문 **Changelog** 칸에 사용자에게 보일 한 줄 작성 (비우면 제목 사용)
+5. 병합되면 [CHANGELOG.md](CHANGELOG.md) `[Unreleased]`에 GitHub Actions가 자동 추가
+6. 캐시 삭제 동작을 바꿀 때는 **안전 목록**(`src/caches.rs`, `runner`)과 테스트를 함께 수정
 
 ### 코드 위치
 

@@ -1,0 +1,49 @@
+name: Changelog
+
+on:
+  pull_request:
+    types: [closed]
+
+permissions:
+  contents: write
+
+jobs:
+  update:
+    if: github.event.pull_request.merged == true && github.event.pull_request.base.ref == 'main'
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: main
+          fetch-depth: 0
+
+      - name: Changelog line from PR
+        id: line
+        env:
+          PR_TITLE: ${{ github.event.pull_request.title }}
+          PR_NUMBER: ${{ github.event.pull_request.number }}
+          PR_URL: ${{ github.event.pull_request.html_url }}
+          PR_BODY: ${{ github.event.pull_request.body }}
+        run: |
+          NOTE=$(printf '%s' "$PR_BODY" | sed -n '/^## Changelog/,/^## /p' | tail -n +2 | sed '/^## /d' | head -n 5 | sed '/^[[:space:]]*$/d' | head -n 1)
+          if [ -z "$NOTE" ]; then
+            NOTE="$PR_TITLE"
+          fi
+          NOTE="${NOTE//$'\r'/}"
+          LINE="- ${NOTE} ([#${PR_NUMBER}](${PR_URL}))"
+          echo "entry<<EOF" >> "$GITHUB_OUTPUT"
+          echo "$LINE" >> "$GITHUB_OUTPUT"
+          echo "EOF" >> "$GITHUB_OUTPUT"
+
+      - name: Append to CHANGELOG.md
+        env:
+          ENTRY: ${{ steps.line.outputs.entry }}
+        run: |
+          chmod +x scripts/changelog-append.sh
+          scripts/changelog-append.sh
+
+      - name: Commit
+        uses: stefanzweifel/git-auto-commit-action@v5
+        with:
+          commit_message: "docs: changelog PR #${{ github.event.pull_request.number }}"
+          file_pattern: CHANGELOG.md

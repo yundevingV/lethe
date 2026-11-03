@@ -79,4 +79,4 @@ git push origin v0.1.0
 
 ## 기여
 
-버그·기능 제안·PR은 [CONTRIBUTING.md](CONTRIBUTING.md) 를 본다.
+버그·기능 제안·PR은 [CONTRIBUTING.md](CONTRIBUTING.md) 를 본다. 변경 이력은 [CHANGELOG.md](CHANGELOG.md).
