@@ -47,3 +47,4 @@ jobs:
         with:
           commit_message: "docs: changelog PR #${{ github.event.pull_request.number }}"
           file_pattern: CHANGELOG.md
+          branch: main
